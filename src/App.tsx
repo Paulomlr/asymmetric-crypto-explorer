@@ -7,6 +7,7 @@ import UserCard from './components/UserCard';
 import MessageComposer from './components/MessageComposer';
 import ChatDisplay from './components/ChatDisplay';
 import EducationalModal from './components/EducationalPanel';
+import EducationalFooterPanel from './components/EducationalFooterPanel';
 import { Key } from 'lucide-react';
 
 function App() {
@@ -14,21 +15,20 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentStep, setCurrentStep] = useState<AppStep>('initial');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [shownPopups, setShownPopups] = useState<Set<AppStep>>(new Set());
 
   useEffect(() => {
-    const stepsWithModal: AppStep[] = [
+    const importantSteps: AppStep[] = [
       'keys-generated',
-      'sender-selected',
-      'message-written',
-      'message-encrypted',
       'message-sent',
       'message-decrypted'
     ];
 
-    if (stepsWithModal.includes(currentStep)) {
+    if (importantSteps.includes(currentStep) && !shownPopups.has(currentStep)) {
       setIsModalOpen(true);
+      setShownPopups(prev => new Set([...prev, currentStep]));
     }
-  }, [currentStep]);
+  }, [currentStep, shownPopups]);
 
   const generateKeys = () => {
     const aliceKeys = generateKeyPair();
@@ -209,6 +209,10 @@ function App() {
                   onDecrypt={handleDecrypt}
                 />
               </div>
+            </div>
+
+            <div className="pt-16">
+              <EducationalFooterPanel />
             </div>
           </div>
         )}

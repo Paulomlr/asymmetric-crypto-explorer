@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import type { AppStep } from '../types';
 import { Info, Shield, Key, Lock, Send, CheckCircle2, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Content Component ---
 interface EducationalPanelContentProps {
@@ -174,54 +175,53 @@ interface EducationalModalProps {
 }
 
 const EducationalModal: React.FC<EducationalModalProps> = ({ isOpen, onClose, currentStep }) => {
-    const [isVisible, setIsVisible] = useState(false);
-
-    useEffect(() => {
-        if (isOpen) {
-            setIsVisible(true);
-        } else {
-            const timer = setTimeout(() => setIsVisible(false), 300);
-            return () => clearTimeout(timer);
-        }
-    }, [isOpen]);
-
-    if (!isVisible && !isOpen) return null;
-
     return (
-        <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
-            {/* Backdrop */}
-            <div
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                onClick={onClose}
-            />
-
-            {/* Modal Content */}
-            <div
-                className={`
-          relative w-full max-w-2xl bg-background-secondary rounded-2xl border border-white/10 shadow-2xl 
-          transform transition-all duration-300 p-8
-          ${isOpen ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}
-        `}
-            >
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 p-2 text-text-muted hover:text-text-primary hover:bg-white/5 rounded-full transition-colors"
-                >
-                    <X className="w-5 h-5" />
-                </button>
-
-                <EducationalPanelContent currentStep={currentStep} />
-
-                <div className="mt-8 flex justify-end">
-                    <button
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    {/* Backdrop */}
+                    <motion.div
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                         onClick={onClose}
-                        className="px-6 py-2 bg-accent-blue hover:bg-accent-blue-hover text-white rounded-lg font-medium transition-colors shadow-lg shadow-accent-blue/20"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                    />
+
+                    {/* Modal Content */}
+                    <motion.div
+                        className="relative w-full max-w-2xl bg-background-secondary rounded-2xl border border-white/10 shadow-2xl p-8"
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        transition={{
+                            duration: 0.4,
+                            ease: "easeOut",
+                            delay: 0.1
+                        }}
                     >
-                        Entendi
-                    </button>
+                        <button
+                            onClick={onClose}
+                            className="absolute top-4 right-4 p-2 text-text-muted hover:text-text-primary hover:bg-white/5 rounded-full transition-colors"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        <EducationalPanelContent currentStep={currentStep} />
+
+                        <div className="mt-8 flex justify-end">
+                            <button
+                                onClick={onClose}
+                                className="px-6 py-2 bg-accent-blue hover:bg-accent-blue-hover text-white rounded-lg font-medium transition-colors shadow-lg shadow-accent-blue/20"
+                            >
+                                Entendi
+                            </button>
+                        </div>
+                    </motion.div>
                 </div>
-            </div>
-        </div>
+            )}
+        </AnimatePresence>
     );
 };
 

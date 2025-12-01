@@ -8,8 +8,8 @@ interface StepIndicatorProps {
 
 const StepIndicator: React.FC<StepIndicatorProps> = ({ steps }) => {
     return (
-        <div className="w-full overflow-x-auto pb-4">
-            <div className="flex items-center gap-2 bg-background-secondary/50 backdrop-blur-sm rounded-2xl p-4 border border-white/5 min-w-max">
+        <div className="w-full">
+            <div className="flex items-center justify-between gap-1 bg-background-secondary/50 backdrop-blur-sm rounded-2xl p-3 border border-white/5 w-full">
                 {steps.map((step, index) => {
                     const isLast = index === steps.length - 1;
 
@@ -17,7 +17,7 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ steps }) => {
                         <React.Fragment key={index}>
                             <div
                                 className={`
-                  flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-300
+                  flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 flex-shrink-0
                   ${step.isActive
                                         ? 'bg-accent-blue/10 border border-accent-blue/30 shadow-lg shadow-accent-blue/10'
                                         : step.isCompleted
@@ -27,7 +27,7 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ steps }) => {
                 `}
                             >
                                 <div className={`
-                  flex items-center justify-center w-6 h-6 rounded-full
+                  flex items-center justify-center w-5 h-5 rounded-full
                   ${step.isActive
                                         ? 'text-accent-blue'
                                         : step.isCompleted
@@ -36,24 +36,32 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ steps }) => {
                                     }
                 `}>
                                     {step.isCompleted ? (
-                                        <CheckCircle2 className="w-5 h-5" />
+                                        <CheckCircle2 className="w-4 h-4" />
                                     ) : (
-                                        <span className="text-sm font-bold">{step.number}</span>
+                                        <span className="text-xs font-bold">{step.number}</span>
                                     )}
                                 </div>
 
-                                <div className="flex flex-col">
+                                <div className="flex flex-col hidden md:flex">
                                     <span className={`
-                    text-sm font-medium whitespace-nowrap
+                    text-xs font-medium whitespace-nowrap
                     ${step.isActive ? 'text-text-primary' : step.isCompleted ? 'text-text-secondary' : 'text-text-muted'}
                   `}>
                                         {step.title}
                                     </span>
                                 </div>
+                                <div className="flex flex-col md:hidden">
+                                    {/* Mobile: Show title only if active */}
+                                    {step.isActive && (
+                                        <span className="text-xs font-medium whitespace-nowrap text-text-primary">
+                                            {step.title}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
 
                             {!isLast && (
-                                <div className={`h-px w-8 flex-shrink-0 transition-colors duration-300 ${step.isCompleted ? 'bg-accent-green/30' : 'bg-white/5'}`} />
+                                <div className={`h-px flex-1 min-w-[4px] transition-colors duration-300 ${step.isCompleted ? 'bg-accent-green/30' : 'bg-white/5'}`} />
                             )}
                         </React.Fragment>
                     );

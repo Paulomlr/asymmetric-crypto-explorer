@@ -141,6 +141,31 @@ const EducationalPanelContent: React.FC<EducationalPanelContentProps> = ({ curre
                     ),
                 };
 
+            case 'signature-verified':
+                return {
+                    title: 'Assinatura Verificada!',
+                    icon: <CheckCircle2 className="w-6 h-6 text-accent-purple" />,
+                    content: (
+                        <div className="space-y-4">
+                            <p className="text-text-secondary">
+                                Você confirmou a <strong>Autenticidade</strong> e <strong>Integridade</strong> da mensagem.
+                            </p>
+                            <div className="grid grid-cols-1 gap-4">
+                                <div className="bg-accent-purple/10 border border-accent-purple/20 p-4 rounded-lg">
+                                    <h4 className="text-accent-purple font-bold mb-2 flex items-center gap-2">
+                                        <Shield className="w-4 h-4" /> O que isso prova?
+                                    </h4>
+                                    <ul className="space-y-2 text-sm text-text-secondary">
+                                        <li>1. <strong>Autenticidade:</strong> Só o remetente (com sua chave privada) poderia ter criado essa assinatura.</li>
+                                        <li>2. <strong>Integridade:</strong> Se a mensagem tivesse sido alterada em 1 bit, a verificação falharia.</li>
+                                        <li>3. <strong>Não Repúdio:</strong> O remetente não pode negar que enviou a mensagem.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    ),
+                };
+
             default:
                 return {
                     title: 'Tutorial',

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { User, Message, AppStep, StepInfo } from './types';
-import { generateKeyPair, encryptMessage, decryptMessage } from './utils/crypto';
+import { generateKeyPair, encryptMessage, decryptMessage, signMessage, verifySignature } from './utils/crypto';
 import Header from './components/Header';
 import StepIndicator from './components/StepIndicator';
 import UserCard from './components/UserCard';
@@ -16,12 +16,14 @@ function App() {
   const [currentStep, setCurrentStep] = useState<AppStep>('initial');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [shownPopups, setShownPopups] = useState<Set<AppStep>>(new Set());
+  const [isGeneratingKeys, setIsGeneratingKeys] = useState(false);
 
   useEffect(() => {
     const importantSteps: AppStep[] = [
       'keys-generated',
       'message-sent',
-      'message-decrypted'
+      'message-decrypted',
+      'signature-verified'
     ];
 
     if (importantSteps.includes(currentStep) && !shownPopups.has(currentStep)) {
@@ -30,9 +32,14 @@ function App() {
     }
   }, [currentStep, shownPopups]);
 
-  const generateKeys = () => {
-    const aliceKeys = generateKeyPair();
-    const bobKeys = generateKeyPair();
+  const generateKeys = async () => {
+    setIsGeneratingKeys(true);
+
+    // Pequeno delay para permitir que o React renderize o estado de loading antes de travar a thread
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    const aliceKeys = await generateKeyPair();
+    const bobKeys = await generateKeyPair();
 
     const newUsers: User[] = [
       {
@@ -40,7 +47,6 @@ function App() {
         name: 'Alice',
         publicKey: aliceKeys.publicKey,
         privateKey: aliceKeys.privateKey,
-        secret: aliceKeys._secret,
         color: '#3B82F6', // Blue
       },
       {
@@ -48,20 +54,25 @@ function App() {
         name: 'Bob',
         publicKey: bobKeys.publicKey,
         privateKey: bobKeys.privateKey,
-        secret: bobKeys._secret,
         color: '#10B981', // Green
       },
     ];
 
     setUsers(newUsers);
     setCurrentStep('keys-generated');
+    setIsGeneratingKeys(false);
   };
 
-  const handleMessageEncrypt = (senderId: string, recipientId: string, plainText: string) => {
+  const handleMessageEncrypt = async (senderId: string, recipientId: string, plainText: string) => {
+    const sender = users.find(u => u.id === senderId);
     const recipient = users.find(u => u.id === recipientId);
-    if (!recipient) return;
+    if (!recipient || !sender) return;
 
-    const encryptedText = encryptMessage(plainText, recipient.publicKey, recipient.secret);
+    // 1. Assinar (Integridade + Autenticidade) - Usa Chave Privada do Remetente
+    const signature = await signMessage(plainText, sender.privateKey);
+
+    // 2. Criptografar (Confidencialidade) - Usa Chave Pública do Destinatário
+    const encryptedText = await encryptMessage(plainText, recipient.publicKey);
 
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -71,21 +82,28 @@ function App() {
       encryptedText,
       isDecrypted: false,
       timestamp: Date.now(),
+      signature,
+      isSignatureVerified: false,
     };
 
     setMessages(prev => [...prev, newMessage]);
     setCurrentStep('message-sent');
   };
 
-  const handleDecrypt = (messageId: string) => {
+  const handleDecrypt = async (messageId: string) => {
+    // Precisamos encontrar a mensagem e o destinatário primeiro
+    const messageToDecrypt = messages.find(m => m.id === messageId);
+    if (!messageToDecrypt) return;
+
+    const recipient = users.find(u => u.id === messageToDecrypt.recipientId);
+    if (!recipient) return;
+
+    const decryptedText = await decryptMessage(messageToDecrypt.encryptedText, recipient.privateKey);
+
     setMessages(prev =>
       prev.map(msg => {
         if (msg.id === messageId) {
-          const recipient = users.find(u => u.id === msg.recipientId);
-          if (recipient) {
-            const decrypted = decryptMessage(msg.encryptedText, recipient.privateKey, recipient.secret);
-            return { ...msg, isDecrypted: true, plainText: decrypted };
-          }
+          return { ...msg, isDecrypted: true, plainText: decryptedText };
         }
         return msg;
       })
@@ -93,8 +111,28 @@ function App() {
     setCurrentStep('message-decrypted');
   };
 
+  const handleVerifySignature = async (messageId: string) => {
+    const messageToVerify = messages.find(m => m.id === messageId);
+    if (!messageToVerify || !messageToVerify.signature) return;
+
+    const sender = users.find(u => u.id === messageToVerify.senderId);
+    if (!sender) return;
+
+    const isValid = await verifySignature(messageToVerify.plainText, messageToVerify.signature, sender.publicKey);
+
+    setMessages(prev =>
+      prev.map(msg => {
+        if (msg.id === messageId) {
+          return { ...msg, isSignatureVerified: isValid };
+        }
+        return msg;
+      })
+    );
+    setCurrentStep('signature-verified');
+  };
+
   const getSteps = (): StepInfo[] => {
-    const stepOrder: AppStep[] = ['initial', 'keys-generated', 'sender-selected', 'message-written', 'message-encrypted', 'message-sent', 'message-decrypted'];
+    const stepOrder: AppStep[] = ['initial', 'keys-generated', 'sender-selected', 'message-written', 'message-encrypted', 'message-sent', 'message-decrypted', 'signature-verified'];
     const currentIndex = stepOrder.indexOf(currentStep);
 
     return [
@@ -140,6 +178,13 @@ function App() {
         isActive: currentStep === 'message-decrypted',
         isCompleted: currentIndex > 6,
       },
+      {
+        number: 7,
+        title: 'Verificar',
+        description: 'Assinatura Digital',
+        isActive: currentStep === 'signature-verified',
+        isCompleted: currentIndex > 7,
+      },
     ];
   };
 
@@ -163,10 +208,20 @@ function App() {
               </p>
               <button
                 onClick={generateKeys}
-                className="bg-accent-blue hover:bg-accent-blue-hover text-white font-bold py-4 px-8 rounded-xl shadow-lg shadow-accent-blue/20 transition-all transform hover:-translate-y-1 hover:shadow-xl flex items-center gap-3 mx-auto text-lg"
+                disabled={isGeneratingKeys}
+                className={`bg-accent-blue hover:bg-accent-blue-hover text-white font-bold py-4 px-8 rounded-xl shadow-lg shadow-accent-blue/20 transition-all transform hover:-translate-y-1 hover:shadow-xl flex items-center gap-3 mx-auto text-lg ${isGeneratingKeys ? 'opacity-75 cursor-wait' : ''}`}
               >
-                <Key className="w-6 h-6" />
-                Gerar Chaves para Alice e Bob
+                {isGeneratingKeys ? (
+                  <>
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                    Gerando Chaves RSA (Isso pode demorar)...
+                  </>
+                ) : (
+                  <>
+                    <Key className="w-6 h-6" />
+                    Gerar Chaves para Alice e Bob
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -207,6 +262,7 @@ function App() {
                   messages={messages}
                   users={users}
                   onDecrypt={handleDecrypt}
+                  onVerifySignature={handleVerifySignature}
                 />
               </div>
             </div>

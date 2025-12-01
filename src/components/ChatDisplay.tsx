@@ -6,9 +6,10 @@ interface ChatDisplayProps {
     messages: Message[];
     users: User[];
     onDecrypt: (messageId: string) => void;
+    onVerifySignature: (messageId: string) => void;
 }
 
-const ChatDisplay: React.FC<ChatDisplayProps> = ({ messages, users, onDecrypt }) => {
+const ChatDisplay: React.FC<ChatDisplayProps> = ({ messages, users, onDecrypt, onVerifySignature }) => {
     const getUser = (userId: string) => users.find(u => u.id === userId);
 
     if (messages.length === 0) {
@@ -110,6 +111,49 @@ const ChatDisplay: React.FC<ChatDisplayProps> = ({ messages, users, onDecrypt })
                                             <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
                                             <span>Descriptografada com sucesso usando a <strong>chave privada</strong> de {recipient?.name}.</span>
                                         </div>
+
+                                        {/* Signature Verification Section */}
+                                        {message.signature && (
+                                            <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
+                                                <div className="flex items-center gap-2 text-accent-purple text-sm font-semibold">
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    <span>Assinatura Digital</span>
+                                                </div>
+
+                                                {!message.isSignatureVerified ? (
+                                                    <div className="space-y-3">
+                                                        <div className="bg-background-primary rounded-lg p-3 border border-accent-purple/20 font-mono text-xs text-accent-purple break-all opacity-80">
+                                                            {message.signature}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => onVerifySignature(message.id)}
+                                                            className="w-full bg-accent-purple hover:bg-accent-purple-hover text-white font-semibold py-2 px-4 rounded-lg shadow-lg shadow-accent-purple/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 text-sm"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                            <span>Verificar Assinatura de {sender?.name}</span>
+                                                        </button>
+                                                        <p className="text-xs text-text-muted text-center">
+                                                            Verifique se a mensagem realmente veio de {sender?.name} usando a <strong>chave pública</strong> dele.
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="bg-accent-purple/10 border border-accent-purple/20 rounded-lg p-3 space-y-2 animate-in fade-in zoom-in duration-300">
+                                                        <div className="flex items-center gap-2 text-accent-purple font-bold text-sm">
+                                                            <CheckCircle2 className="w-4 h-4" />
+                                                            <span>Assinatura Verificada!</span>
+                                                        </div>
+                                                        <p className="text-xs text-text-secondary">
+                                                            <strong>Autenticidade Confirmada:</strong> A mensagem foi assinada pela chave privada de {sender?.name}.<br />
+                                                            <strong>Integridade Confirmada:</strong> O conteúdo não foi alterado.
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

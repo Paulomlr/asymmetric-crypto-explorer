@@ -3,7 +3,6 @@ export interface User {
     name: string;
     publicKey: string;
     privateKey: string;
-    secret: string;
     color: string;
 }
 
@@ -15,6 +14,8 @@ export interface Message {
     encryptedText: string;
     isDecrypted: boolean;
     timestamp: number;
+    signature?: string;
+    isSignatureVerified?: boolean;
 }
 
 export type AppStep =
@@ -24,7 +25,8 @@ export type AppStep =
     | 'message-written'
     | 'message-encrypted'
     | 'message-sent'
-    | 'message-decrypted';
+    | 'message-decrypted'
+    | 'signature-verified';
 
 export interface StepInfo {
     number: number;
